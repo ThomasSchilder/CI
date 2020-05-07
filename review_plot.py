@@ -7,7 +7,7 @@ rootdir ='./data'
 json_data = []
 review = {}
 reviews = 0
- #get all data
+ #Convert all data
 for r,d,f in os.walk(rootdir):
 	for name in f:
 		if(name == 'review.json'):
@@ -18,8 +18,8 @@ for r,d,f in os.walk(rootdir):
 				json_line = json.loads(line)
 				json_data.append(json_line)
 
+#Create review plot
 for x in json_data:
-	print(review)
 	key = round(x["stars"],1)
 	if(key in review.keys()):
 		review[key] += 1
@@ -29,7 +29,6 @@ for x in json_data:
 lists = sorted(review.items()) # sorted by key, return a list of tuples
 
 x, y = zip(*lists) # unpack a list of pairs into two tuples
-print(reviews)
 plt.plot(x,y)
 plt.title('Ten cities\nFirst '+ str(reviews) +' reviews')
 plt.xlabel('Score')
