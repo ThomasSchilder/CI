@@ -32,6 +32,6 @@ x, y = zip(*lists) # unpack a list of pairs into two tuples
 print(reviews)
 plt.plot(x,y)
 plt.title('Ten cities\nFirst '+ str(reviews) +' reviews')
-plt.xlabel('Number of reviews')
-plt.ylabel('Score')
+plt.xlabel('Score')
+plt.ylabel('Number of reviews')
 plt.savefig('./plots/reviews_per_score.png')
