@@ -5,25 +5,27 @@ import os
 import json_load
 
 rootdir ='./data'
-file = 'review.json'
+file = 'user.json'
 
 json_data = json_load.convert(rootdir, file)
 review = {}
 
-#Create review plot
+#Create feature plot
 for x in json_data:
-	key = round(x["stars"],1)
+	key = round(x["review_count"],1)
 	if(key in review.keys()):
-		review[key] += 1
+		review[key].add(x['user_id'])
 	else:
-		review[key] = 1
+		review[key] = set()
+		review[key].add(x['user_id'])
 
 lists = sorted(review.items()) # sorted by key, return a list of tuples
-print(lists)
+(print(lists))
+
 x, y = zip(*lists) # unpack a list of pairs into two tuples
 plt.plot(x,y)
-plt.title('Ten cities\nFirst '+ str(len(json_data)) +' reviews')
-plt.xlabel('Score')
+plt.title('Ten cities\nreviews per user\ntested on ')
+plt.xlabel('Users')
 plt.ylabel('Number of reviews')
-plt.savefig('./plots/reviews_per_score.png')
+plt.savefig('./plots/reviews_per_user.png')
 plt.show()
