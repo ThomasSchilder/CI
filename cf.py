@@ -16,11 +16,16 @@ if(picklesFound == True):
         skip = False
 
 if (skip == False):
+    df_training, df_test = hf.split_data(pd.DataFrame(json_load.convert('./data', 'review.json')))
+    print('trainingset' + str(len(df_training)))
+    print('testset' + str(len(df_test)));
+
     #dataframes: read every json file in the data folder.
     df_business = pd.DataFrame(json_load.convert('./data', 'business.json'))[['business_id', 'name','city','state','stars','review_count']]
     df_review = pd.DataFrame(json_load.convert('./data', 'review.json'))[['review_id','user_id','business_id','stars','date', 'text']]
     df_review.to_pickle("./pickles/df_review.pkl")
     df_business.to_pickle("./pickles/df_business.pkl");
+
     #Utility matrixes don't like users that review the same restaurant twice. So I removed duplicates.
     df_review.drop_duplicates(subset =["business_id","user_id"], keep = False, inplace = True)
 
@@ -40,7 +45,7 @@ else:
     similarity = pd.read_pickle("./pickles/similarity.pkl")
     df_review = pd.read_pickle("./pickles/df_review.pkl");
 
-userId = "J_YvuhImu-IabKXmwFsWDA"
+userId = "upGYcgeV-g_qcfIOdL87Lg"
 recommend = hf.select_neighborhood(userId, similarity, utility_review, df_review, 10)
 
 display(recommend)

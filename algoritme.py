@@ -3,12 +3,18 @@ import json
 import os
 import json_load
 import collections
-import pandas
+import pandas as pd
 import itertools
 import random
 import statistics
+import helperfunctions as hf
 
-rootdir ='./data/toronto'
+rootdir ='./data'
+
+df_training, df_test = hf.split_data(pd.DataFrame(json_load.convert('./data', 'review.json')))
+training_json = df_training.to_json()
+print(training_json)
+exit();
 
 # Returns a list with user id's from the region
 def user_list():
@@ -68,7 +74,7 @@ def user_attributes(user_reviews):
 
 # Creates a matrix with all companies and wich attributes apply to them
 def attribute_matrix(relevant_companies, user_attributes):
-    matrix = pandas.DataFrame(index=set(relevant_companies), columns=list(user_attributes))
+    matrix = pd.DataFrame(index=set(relevant_companies), columns=list(user_attributes))
     business_list = json_load.convert(rootdir, 'business.json')
 
     for business in business_list:
@@ -157,8 +163,8 @@ else:
 
     for item in business_list:
         if item['business_id'] in recomendations:
-            print(item['name'])
-
+            #print(item['name'])
+            print('joe')
     print("content based recomendations:", (sum(value_list) / len(value_list)))
 
 # random based
