@@ -12,17 +12,19 @@ import helperfunctions as hf
 rootdir ='./data'
 
 df_training, df_test = hf.split_data(pd.DataFrame(json_load.convert('./data', 'review.json')))
-training_json = df_training.to_json()
-print(training_json)
-exit();
+training_json = df_training.to_json(orient='records')
+test_json = df_test.to_json(orient='records')
+trainingdata = json.loads(training_json)
+testdata = json.loads(test_json)
+#print(training_json)
 
 # Returns a list with user id's from the region
 def user_list():
     return [user['user_id'] for user in json_load.convert(rootdir, 'user.json')]
 
 # Returns a dict with review scores from the user
-def user_reviews(user):
-    review_list = json_load.convert(rootdir, 'review.json')
+def user_reviews(user, data):
+    review_list = data;
     business_list = json_load.convert(rootdir, 'business.json')
     business_dict = {}
 
@@ -126,12 +128,30 @@ def random_recomendations(company_dict, user_reviews):
 
     return return_dict
 
+def calculate_deviation(data, businesses):
+    totalValue = 0;
+    items = 0;
+    for key in data.keys():
+        value = data[key];
+        rating = 0
+        for business in businesses:
+            for (x, y) in business.items():
+                if y == key:
+                    rating = business['stars']
+        totalValue += abs(rating-value);
+        items += 1
+    return totalValue/items
+
+
+    return user_list()
+
 # generate basics
 user_list = user_list()
-user_reviews = user_reviews(user_list[4])
+user_reviews = user_reviews("_zPT9ZmR5-nUfsprzIiRew", trainingdata)
+
 user_attributes = user_attributes(user_reviews)
 business_list = json_load.convert(rootdir, 'business.json')
-
+recoms = []
 # user based
 if len(user_reviews) < 5:
     business_dict = {business['business_id']:business['stars'] for business in business_list}
@@ -146,27 +166,31 @@ if len(user_reviews) < 5:
         i += 1
 
     recomendations = [random.choice(top_list) for x in range(20)]
-
+    recoms = recomendations
+    '''
     for item in business_list:
         if item['business_id'] in recomendations:
-            print(item['name'])
+            #print(item['name'])
+            print('joe')'''
 
 else:
     relevant_companies = relevant_companies(user_reviews)
     attribute_matrix = attribute_matrix(relevant_companies, user_attributes)
     company_dict = company_dict(attribute_matrix)
     recomendations = user_recomendations(company_dict, user_reviews)
-
+    recoms = recomendations
     value_list = []
     for company in recomendations:
         value_list.append(recomendations[company])
-
+        '''
     for item in business_list:
         if item['business_id'] in recomendations:
-            #print(item['name'])
-            print('joe')
-    print("content based recomendations:", (sum(value_list) / len(value_list)))
+            print(item['name'])'''
+            #print('joe')
+    content_training = (sum(value_list) / len(value_list))
 
+print(recoms)
+print(calculate_deviation(recoms, business_list))
 # random based
 # business_list = json_load.convert(rootdir, 'business.json')
 # business_id_list = [business['business_id'] for business in business_list]
