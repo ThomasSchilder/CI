@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 import os
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 
 from IPython.display import display
 
@@ -75,37 +77,69 @@ def create_similarity_matrix_cosine(matrix):
 def mean_center_columns(matrix):
 	return matrix - matrix.mean()
 
+def select_neighborhood(similarities, ratings, k, test):
+    neighborhood = similarities[similarities > 0].nlargest(n=k)
+    if test:
+        neighborhood = neighborhood[ratings > 0]
+    
+    return neighborhood
 
-def select_neighborhood(userId, similarity, utility_review, df_review, amount):
-	if len(df_review[df_review["user_id"] == userId]) == 0:
-		return "No reviews found, selecting top " + str(amount)
+def weighted_mean(neighborhood, ratings):  
+    similarities = neighborhood * ratings
+    similarities = similarities.dropna()
+        
+    top = similarities.sum()
+    bottom = neighborhood.sum()
+    
+    if bottom == 0:
+        return np.nan
+        
+    return top / bottom
+	
 
-	top_review = df_review[df_review["user_id"] == userId]["stars"].sort_values(ascending=False).index[0]
+def predict_ratings_item_based(similarity, utility, user_item_pairs, test):
+    ratings_test_c = user_item_pairs.copy()
+    
+    for index, row in ratings_test_c.iterrows():
+        if row["user_id"] not in utility or row["business_id"] not in similarity:
+            ratings_test_c.loc[index, "predicted stars"] = None
+            continue
 
-	top_business = df_review.loc[top_review, "business_id"]
+        neighborhood = select_neighborhood(similarity[row["business_id"]], utility[row["user_id"]], 100, test)
+        prediction = weighted_mean(neighborhood, utility[row["user_id"]])
+        ratings_test_c.loc[index, "predicted stars"] = prediction
+        
+    return ratings_test_c[ratings_test_c["predicted stars"] > 0]
 
-	similarities = similarity[top_business]
-	reviews = utility_review[userId]
+def mse(predicted_ratings):
+    difference = predicted_ratings["stars"] - predicted_ratings["predicted stars"]
+    squared = np.square(difference)
+    return squared.sum() / len(predicted_ratings)
 
-	similarities = similarities[similarities > 0].nlargest(n=amount)
-	neighborhood = similarities[reviews > 0]
+def recommended(predictions, treshold, k):
+    return predictions[predictions["predicted stars"] >= treshold].nlargest(k, "predicted stars")
 
-	similarities = neighborhood * reviews
-	similarities = similarities.dropna()
-	print(similarities);
-	print(neighborhood)
-	top = similarities.sum()
-	bottom = neighborhood.sum()
-	if bottom == 0:
-		return np.nan
-	return top / bottom
+def make_plots(predicted_item_based, predicted_random, predicted_item_mean):
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(ncols=2, nrows=2)
+    fig.tight_layout(pad=3.0)
 
-'''def pivot_ratings(ratings):
-	business = ratings['business_id'].unique()
-	users = ratings['user_id'].unique()
-	frame = pd.DataFrame(index=business, columns=users)
-	for y in frame.index:
-		for x in frame.columns:
-			frame[x][y] = get_rating(ratings, x, y)
-	return frame
-'''
+    axes = [ax1, ax2, ax3, ax4]
+    data = [predicted_item_based['stars'],
+            predicted_item_based['predicted stars'],
+            predicted_random['predicted stars'], 
+            predicted_item_mean['predicted stars']]
+    titles = ["actual ratings", "predicted item based", "predicted random", "predicted mean"]
+
+    for ax, d, title in zip(axes, data, titles):
+        ax.hist(list(d), bins=list(np.arange(0,5.5,0.25)))
+        ax.set_xlabel("stars")
+        ax.set_ylabel("amount")
+        ax.set_title(title)
+
+    print('     | actual | item | random | mean')
+    print('-----+--------+------+------+-----')
+    print(f'mean |   {data[0].mean():.2f} | {data[1].mean():.2f} | {data[2].mean():.2f} | {data[3].mean():.2f}')
+    print(f'std  |   {data[0].std():.2f} | {data[1].std():.2f} | {data[2].std():.2f} | {data[3].std():.2f}')
+    print(f'mse  |   {0:.2f} | {mse(predicted_item_based):.2f} | {mse(predicted_random):.2f} | {mse(predicted_item_mean):.2f}')
+    
+    plt.show()
