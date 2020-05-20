@@ -116,9 +116,6 @@ def mse(predicted_ratings):
     squared = np.square(difference)
     return squared.sum() / len(predicted_ratings)
 
-def recommended(predictions, treshold, k):
-    return predictions[predictions["predicted stars"] >= treshold].nlargest(k, "predicted stars")
-
 def make_plots(predicted_item_based, predicted_random, predicted_item_mean):
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(ncols=2, nrows=2)
     fig.tight_layout(pad=3.0)
@@ -143,3 +140,80 @@ def make_plots(predicted_item_based, predicted_random, predicted_item_mean):
     print(f'mse  |   {0:.2f} | {mse(predicted_item_based):.2f} | {mse(predicted_random):.2f} | {mse(predicted_item_mean):.2f}')
     
     plt.show()
+
+
+
+
+tresholds = [2.5, 3.0, 3.5, 4.0, 4.5]
+treshold_used = 4
+
+def recommended(predictions, treshold):
+    return predictions[predictions["predicted stars"] >= treshold]
+    
+
+def hidden(predictions, treshold):
+    return predictions[predictions["predicted stars"] < treshold]
+
+def used(predictions, treshold):
+    return predictions[predictions["stars"] >= treshold]
+    
+
+def unused(predictions, treshold):
+    return predictions[predictions["stars"] < treshold]
+
+def confusion(recommended, hidden, used, unused):
+    tp = len(pd.merge(recommended, used, how='inner'))
+    fp = len(pd.merge(recommended, unused, how='inner'))
+    tn = len(pd.merge(hidden, unused, how='inner'))
+    fn = len(pd.merge(hidden, used, how='inner'))
+    
+    data = [[tp, fp], [fn, tn]]
+    
+    return pd.DataFrame(data, columns=['used', 'unused'], index=['recommended', 'hidden'])
+
+def precision(confusion_matrix):
+    tp = confusion_matrix.loc["recommended", "used"]
+    fp = confusion_matrix.loc["recommended", "unused"]
+    return tp / (tp + fp)
+
+def recall(confusion_matrix):
+    tp = confusion_matrix.loc["recommended", "used"]
+    fn = confusion_matrix.loc["hidden", "used"]
+    return tp / (tp + fn)
+
+def precision_recall(predicted_ratings, treshold_recommended, treshold_used):
+    recommended_items = recommended(predicted_ratings, treshold_recommended)
+    hidden_items = hidden(predicted_ratings, treshold_recommended)
+    used_items = used(predicted_ratings, treshold_used)
+    unused_items = unused(predicted_ratings, treshold_used)
+    
+    confusion_matrix = confusion(recommended_items, hidden_items, used_items, unused_items)
+    
+    return precision(confusion_matrix), recall(confusion_matrix)
+
+def plot_precision_recall(predicted_ratings):
+    precisions = []
+    recalls = []
+    for treshold_recommended in tresholds:
+        precision_value, recall_value = precision_recall(predicted_ratings, treshold_recommended, treshold_used)
+        precisions.append(precision_value)
+        recalls.append(recall_value)
+        
+    plt.plot(recalls, precisions)
+    for r, p, t in zip(recalls, precisions, tresholds):
+        plt.text(r, p, t)
+
+def make_plots2(item_based, random, mean):
+    plot_precision_recall(item_based)
+    plot_precision_recall(random)
+    plot_precision_recall(mean)
+
+    plt.title("Precision/recall curve voor verschillende thresholds. Threshold used=4")
+    plt.xlim(0.0, 1.0)
+    plt.ylim(0.3, 1.0)
+    plt.xlabel('recall')
+    plt.ylabel('precision')
+
+    plt.legend(['Item based collaborative filtering', 'Predictions with random', 'Predictions with mean'], loc = 'lower left')
+    plt.show()
+
