@@ -89,6 +89,21 @@ def attribute_matrix(relevant_companies, user_attributes):
                             matrix[attribute][business['business_id']] = user_attributes[attribute][1]
     return matrix
 
+# Create a matrix where scores are not weighted
+def attribute_matrix_nw(relevant_companies, user_attributes):
+    matrix = pd.DataFrame(index=set(relevant_companies), columns=list(user_attributes))
+    business_list = json_load.convert(rootdir, 'business.json')
+
+    for business in business_list:
+        if business['business_id'] in matrix.index:
+            for attribute in matrix.columns:
+                matrix[attribute][business['business_id']] = 0
+                if business['attributes'] != None:
+                    if attribute in business['attributes']:
+                        if business['attributes'][attribute] == 'True':
+                            matrix[attribute][business['business_id']] = 1
+    return matrix
+
 # Returns a dict with all companies and their respective summed score of the attributes
 def company_dict(matrix):
     sum_dict = {}
@@ -146,12 +161,28 @@ def calculate_deviation(data, businesses):
     return user_list()
 
 # generate basics
+# 4 / 9 / 13
 user_list = user_list()
-user_reviews = user_reviews("_zPT9ZmR5-nUfsprzIiRew", trainingdata)
-
+user_reviews = user_reviews(user_list[13], trainingdata)
 user_attributes = user_attributes(user_reviews)
 business_list = json_load.convert(rootdir, 'business.json')
 recoms = []
+users_json = json_load.convert(rootdir, 'user.json')
+
+
+
+# for x in range(len(user_list)):
+#     if len(user_reviews(user_list[x], trainingdata)) > 5:
+#         print(users)
+# review_list = []
+# for users in users_json:
+#         for key in users.keys():
+#             if key == 'user_id':
+#                 if (users['review_count'] == 8):
+#                     review_list.append(users[key])
+#
+#
+# print(review_list)
 # user based
 if len(user_reviews) < 5:
     business_dict = {business['business_id']:business['stars'] for business in business_list}
@@ -175,7 +206,7 @@ if len(user_reviews) < 5:
 
 else:
     relevant_companies = relevant_companies(user_reviews)
-    attribute_matrix = attribute_matrix(relevant_companies, user_attributes)
+    attribute_matrix = attribute_matrix_nw(relevant_companies, user_attributes)
     company_dict = company_dict(attribute_matrix)
     recomendations = user_recomendations(company_dict, user_reviews)
     recoms = recomendations
@@ -189,17 +220,33 @@ else:
             #print('joe')
     content_training = (sum(value_list) / len(value_list))
 
-print(recoms)
-print(calculate_deviation(recoms, business_list))
+# values_recom = [value for value in recoms.values()]
+
+
+
+# check precentage of overlapping reviews
+i=0
+for ids in recoms:
+    if ids in user_reviews:
+        i += 1
+
+print(recomendations)
+print(len(user_reviews))
+print(i/len(user_reviews))
+
+
+# mean = sum(values_recom)/len(values_recom)
+# print(mean,'user')
+# print(calculate_deviation(recoms, business_list))
 # random based
 # business_list = json_load.convert(rootdir, 'business.json')
 # business_id_list = [business['business_id'] for business in business_list]
 # random_matrix = attribute_matrix(business_id_list, user_attributes)
 # random_company_dict = company_dict(random_matrix)
 # recomendations_random = random_recomendations(random_company_dict, user_reviews)
-
+#
 # value_list = []
 # for company in recomendations_random:
 #     value_list.append(recomendations_random[company])
-
+#
 # print("random based recomendations:",  (sum(value_list) / len(value_list)))
